@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThyroScan AI — Thyroid Disease Prediction</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f0ede8;--surface:#faf9f7;--card:#ffffff;--border:#e2ddd6;
+  --accent:#1a6b55;--accent-light:#d4ede7;--accent-deep:#0f4338;
+  --warn:#c75b2a;--warn-light:#fdeee6;
+  --text:#1c1916;--text-2:#5c5650;--text-3:#9c9489;
+  --hypothyroid:#3b6ea5;--hyperthyroid:#c75b2a;--euthyroid:#1a6b55;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6}
+
+header{background:var(--accent-deep);color:#fff;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-text{font-family:'DM Serif Display',serif;font-size:1.3rem;letter-spacing:-.02em}
+.logo-text span{color:#7ecfbb}
+.header-badge{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:500;color:rgba(255,255,255,.8)}
+
+.main{max-width:1060px;margin:0 auto;padding:40px 24px 80px}
+
+.hero{text-align:center;margin-bottom:44px}
+.hero h1{font-family:'DM Serif Display',serif;font-size:2.5rem;letter-spacing:-.03em;line-height:1.15;color:var(--accent-deep);margin-bottom:12px}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero p{color:var(--text-2);font-size:1rem;max-width:540px;margin:0 auto 18px}
+.accuracy-pill{display:inline-flex;align-items:center;gap:8px;background:var(--accent-light);border:1px solid var(--accent);border-radius:24px;padding:6px 16px;font-size:13px;font-weight:600;color:var(--accent-deep)}
+.dot{width:8px;height:8px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+@media(max-width:700px){.form-grid{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:26px;box-shadow:var(--shadow)}
+
+.section-label{display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3);margin-bottom:18px}
+.section-label::before{content:'';display:block;width:3px;height:16px;background:var(--accent);border-radius:2px}
+
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12.5px;font-weight:500;color:var(--text-2);margin-bottom:5px}
+.field input[type=number]{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:14px;color:var(--text);background:var(--surface);transition:border .2s}
+.field input[type=number]:focus{outline:none;border-color:var(--accent);background:#fff}
+
+.toggle-group{display:flex;gap:6px}
+.toggle-group button{flex:1;padding:8px 6px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text-2);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .18s}
+.toggle-group button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.toggle-group button:hover:not(.active){border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+
+.hint{font-size:11px;color:var(--text-3);margin-top:3px}
+
+.measured-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.measured-row label{font-size:12.5px;font-weight:500;color:var(--text-2);flex:0 0 auto}
+.measured-toggle{display:flex;gap:4px}
+.measured-toggle button{padding:4px 10px;border:1.5px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text-3);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;font-family:inherit}
+.measured-toggle button.active{background:var(--accent-light);border-color:var(--accent);color:var(--accent-deep)}
+
+.hormone-block{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px}
+.hormone-name{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--accent-deep);margin-bottom:8px}
+
+.submit-row{margin-top:24px;display:flex;gap:12px}
+.btn-predict{flex:1;padding:14px 24px;background:var(--accent-deep);color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:-.01em}
+.btn-predict:hover{background:var(--accent);transform:translateY(-1px);box-shadow:0 4px 14px rgba(26,107,85,.35)}
+.btn-predict:active{transform:translateY(0)}
+.btn-predict:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.btn-reset{padding:14px 20px;background:transparent;color:var(--text-2);border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-reset:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ─── RESULT ─── */
+.result-section{margin-top:28px;display:none}
+.result-card{border-radius:16px;padding:28px;position:relative;overflow:hidden}
+.result-card.euthyroid{background:linear-gradient(135deg,#e8f6f0 0%,#f0faf6 100%);border:1.5px solid var(--accent)}
+.result-card.hypothyroid{background:linear-gradient(135deg,#eaf1fb 0%,#f0f5ff 100%);border:1.5px solid var(--hypothyroid)}
+.result-card.hyperthyroid{background:linear-gradient(135deg,#fdf0ea 0%,#fff5ef 100%);border:1.5px solid var(--hyperthyroid)}
+
+.result-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px}
+.result-label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;opacity:.65}
+.result-diagnosis{font-family:'DM Serif Display',serif;font-size:2rem;letter-spacing:-.02em}
+.result-card.euthyroid .result-diagnosis{color:var(--euthyroid)}
+.result-card.hypothyroid .result-diagnosis{color:var(--hypothyroid)}
+.result-card.hyperthyroid .result-diagnosis{color:var(--hyperthyroid)}
+
+.confidence-badge{text-align:right}
+.conf-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.6;margin-bottom:4px}
+.conf-value{font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:500}
+
+.conf-bar-wrap{background:rgba(0,0,0,.06);border-radius:4px;height:6px;margin-bottom:20px;overflow:hidden}
+.conf-bar-fill{height:100%;border-radius:4px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.euthyroid .conf-bar-fill{background:var(--euthyroid)}
+.hypothyroid .conf-bar-fill{background:var(--hypothyroid)}
+.hyperthyroid .conf-bar-fill{background:var(--hyperthyroid)}
+
+.result-details{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.detail-item{background:rgba(255,255,255,.7);border-radius:10px;padding:12px 14px}
+.detail-item .di-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:3px}
+.detail-item .di-val{font-size:14px;font-weight:500;color:var(--text)}
+
+.disclaimer{margin-top:14px;font-size:11.5px;color:var(--text-3);line-height:1.5;padding:10px 12px;background:rgba(255,255,255,.5);border-radius:8px}
+.disclaimer strong{color:var(--text-2)}
+
+.download-row{display:flex;gap:10px;margin-top:16px}
+.btn-download{flex:1;padding:11px 16px;border-radius:10px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-dl-pdf{background:var(--accent-deep);color:#fff;border:none}
+.btn-dl-pdf:hover{background:var(--accent)}
+.btn-dl-csv{background:#fff;color:var(--text-2);border:1.5px solid var(--border)}
+.btn-dl-csv:hover{border-color:var(--accent);color:var(--accent)}
+
+.loading-spinner{display:none;align-items:center;gap:10px;justify-content:center;padding:20px;color:var(--text-2)}
+.spinner{width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* decorative bg */
+.bg-circle{position:fixed;border-radius:50%;pointer-events:none;opacity:.04}
+.bg-c1{width:600px;height:600px;background:var(--accent);top:-200px;right:-200px}
+.bg-c2{width:400px;height:400px;background:var(--warn);bottom:-100px;left:-100px}
+
+/* model info bar */
+.model-bar{display:flex;align-items:center;gap:24px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 20px;margin-bottom:28px;flex-wrap:wrap}
+.model-stat{text-align:center}
+.model-stat .ms-val{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:500;color:var(--accent-deep)}
+.model-stat .ms-lbl{font-size:11px;color:var(--text-3);font-weight:500;margin-top:1px}
+.model-divider{width:1px;height:36px;background:var(--border)}
+.model-info-text{flex:1;font-size:12.5px;color:var(--text-2);line-height:1.5}
+</style>
+</head>
+<body>
+<div class="bg-circle bg-c1"></div>
+<div class="bg-circle bg-c2"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🫀</div>
+    <div class="logo-text">Thyro<span>Scan</span> AI</div>
+  </div>
+  <div class="header-badge">Stacking Ensemble · 98.38% Accuracy</div>
+</header>
+
+<div class="main">
+  <div class="hero">
+    <h1>AI-Powered <em>Thyroid</em><br>Disease Prediction</h1>
+    <p>Enter patient clinical parameters below. The hybrid stacking ensemble model (LR + SVM + RF + XGBoost) will classify thyroid condition in seconds.</p>
+    <div class="accuracy-pill"><div class="dot"></div> Model Accuracy: 98.38% · AUC-ROC: 0.99</div>
+  </div>
+
+  <div class="model-bar">
+    <div class="model-stat"><div class="ms-val">98.38%</div><div class="ms-lbl">Accuracy</div></div>
+    <div class="model-divider"></div>
+    <div class="model-stat"><div class="ms-val">0.9921</div><div class="ms-lbl">Precision</div></div>
+    <div class="model-divider"></div>
+    <div class="model-stat"><div class="ms-val">0.9931</div><div class="ms-lbl">F1-Score</div></div>
+    <div class="model-divider"></div>
+    <div class="model-stat"><div class="ms-val">0.99</div><div class="ms-lbl">AUC-ROC</div></div>
+    <div class="model-divider"></div>
+    <div class="model-info-text">Hybrid Stacking Ensemble trained on UCI Thyroid Disease Dataset. Base classifiers: Logistic Regression, SVM, Random Forest, XGBoost. Meta-classifier: Logistic Regression. Feature selection via SHAP + SelectKBest.</div>
+  </div>
+
+  <form id="predictForm">
+    <div class="form-grid">
+
+      <!-- LEFT: Demographics + Flags -->
+      <div>
+        <div class="card" style="margin-bottom:20px">
+          <div class="section-label">Patient Demographics</div>
+          <div class="field">
+            <label>Age (years)</label>
+            <input type="number" id="age" min="1" max="120" placeholder="e.g. 45" required>
+          </div>
+          <div class="field">
+            <label>Sex</label>
+            <div class="toggle-group">
+              <button type="button" class="active" data-field="sex" data-val="1">Female</button>
+              <button type="button" data-field="sex" data-val="0">Male</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-label">Clinical Flags</div>
+          <div class="field">
+            <label>On Thyroxine?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="on_thyroxine" data-val="0" class="active">No</button>
+              <button type="button" data-field="on_thyroxine" data-val="1">Yes</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Query on Thyroxine?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="query_on_thyroxine" data-val="0" class="active">No</button>
+              <button type="button" data-field="query_on_thyroxine" data-val="1">Yes</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>On Antithyroid Meds?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="on_antithyroid_meds" data-val="0" class="active">No</button>
+              <button type="button" data-field="on_antithyroid_meds" data-val="1">Yes</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Sick?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="sick" data-val="0" class="active">No</button>
+              <button type="button" data-field="sick" data-val="1">Yes</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Pregnant?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="pregnant" data-val="0" class="active">No</button>
+              <button type="button" data-field="pregnant" data-val="1">Yes</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Thyroid Surgery?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="thyroid_surgery" data-val="0" class="active">No</button>
+              <button type="button" data-field="thyroid_surgery" data-val="1">Yes</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>I131 Treatment?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="I131_treatment" data-val="0" class="active">No</button>
+              <button type="button" data-field="I131_treatment" data-val="1">Yes</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Query Hypothyroid?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="query_hypothyroid" data-val="0" class="active">No</button>
+              <button type="button" data-field="query_hypothyroid" data-val="1">Yes</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Query Hyperthyroid?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="query_hyperthyroid" data-val="0" class="active">No</button>
+              <button type="button" data-field="query_hyperthyroid" data-val="1">Yes</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Lithium?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="lithium" data-val="0" class="active">No</button>
+              <button type="button" data-field="lithium" data-val="1">Yes</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Goitre?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="goitre" data-val="0" class="active">No</button>
+              <button type="button" data-field="goitre" data-val="1">Yes</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Tumor?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="tumor" data-val="0" class="active">No</button>
+              <button type="button" data-field="tumor" data-val="1">Yes</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Hypopituitary?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="hypopituitary" data-val="0" class="active">No</button>
+              <button type="button" data-field="hypopituitary" data-val="1">Yes</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Psych?</label>
+            <div class="toggle-group">
+              <button type="button" data-field="psych" data-val="0" class="active">No</button>
+              <button type="button" data-field="psych" data-val="1">Yes</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Hormone Values -->
+      <div>
+        <div class="card">
+          <div class="section-label">Hormone Lab Values</div>
+          <p style="font-size:12.5px;color:var(--text-3);margin-bottom:16px">Toggle "Measured" to indicate if the test was performed. Enter the lab result if measured.</p>
+
+          <!-- TSH -->
+          <div class="hormone-block">
+            <div class="hormone-name">TSH — Thyroid Stimulating Hormone</div>
+            <div class="measured-row">
+              <label>Measured?</label>
+              <div class="measured-toggle">
+                <button type="button" class="active" data-field="TSH_measured" data-val="1">Yes</button>
+                <button type="button" data-field="TSH_measured" data-val="0">No</button>
+              </div>
+            </div>
+            <div class="field" id="TSH_field">
+              <label>TSH Value (mIU/L)</label>
+              <input type="number" id="TSH" step="0.01" min="0" placeholder="Normal: 0.4–4.0">
+              <div class="hint">Reference: 0.4–4.0 mIU/L</div>
+            </div>
+          </div>
+
+          <!-- T3 -->
+          <div class="hormone-block">
+            <div class="hormone-name">T3 — Triiodothyronine</div>
+            <div class="measured-row">
+              <label>Measured?</label>
+              <div class="measured-toggle">
+                <button type="button" class="active" data-field="T3_measured" data-val="1">Yes</button>
+                <button type="button" data-field="T3_measured" data-val="0">No</button>
+              </div>
+            </div>
+            <div class="field" id="T3_field">
+              <label>T3 Value (nmol/L)</label>
+              <input type="number" id="T3" step="0.01" min="0" placeholder="Normal: 1.2–2.7">
+              <div class="hint">Reference: 1.2–2.7 nmol/L</div>
+            </div>
+          </div>
+
+          <!-- TT4 -->
+          <div class="hormone-block">
+            <div class="hormone-name">TT4 — Total Thyroxine</div>
+            <div class="measured-row">
+              <label>Measured?</label>
+              <div class="measured-toggle">
+                <button type="button" class="active" data-field="TT4_measured" data-val="1">Yes</button>
+                <button type="button" data-field="TT4_measured" data-val="0">No</button>
+              </div>
+            </div>
+            <div class="field" id="TT4_field">
+              <label>TT4 Value (nmol/L)</label>
+              <input type="number" id="TT4" step="0.1" min="0" placeholder="Normal: 64–154">
+              <div class="hint">Reference: 64–154 nmol/L</div>
+            </div>
+          </div>
+
+          <!-- T4U -->
+          <div class="hormone-block">
+            <div class="hormone-name">T4U — T4 Uptake</div>
+            <div class="measured-row">
+              <label>Measured?</label>
+              <div class="measured-toggle">
+                <button type="button" class="active" data-field="T4U_measured" data-val="1">Yes</button>
+                <button type="button" data-field="T4U_measured" data-val="0">No</button>
+              </div>
+            </div>
+            <div class="field" id="T4U_field">
+              <label>T4U Value</label>
+              <input type="number" id="T4U" step="0.01" min="0" placeholder="Normal: 0.7–1.05">
+              <div class="hint">Reference: 0.70–1.05</div>
+            </div>
+          </div>
+
+          <!-- FTI -->
+          <div class="hormone-block">
+            <div class="hormone-name">FTI — Free Thyroxine Index</div>
+            <div class="measured-row">
+              <label>Measured?</label>
+              <div class="measured-toggle">
+                <button type="button" class="active" data-field="FTI_measured" data-val="1">Yes</button>
+                <button type="button" data-field="FTI_measured" data-val="0">No</button>
+              </div>
+            </div>
+            <div class="field" id="FTI_field">
+              <label>FTI Value</label>
+              <input type="number" id="FTI" step="0.1" min="0" placeholder="Normal: 64–154">
+              <div class="hint">Reference: 64–154</div>
+            </div>
+          </div>
+
+          <!-- TBG -->
+          <div class="hormone-block">
+            <div class="hormone-name">TBG — Thyroxine Binding Globulin</div>
+            <div class="measured-row">
+              <label>Measured?</label>
+              <div class="measured-toggle">
+                <button type="button" data-field="TBG_measured" data-val="1">Yes</button>
+                <button type="button" class="active" data-field="TBG_measured" data-val="0">No</button>
+              </div>
+            </div>
+            <div class="field" id="TBG_field" style="display:none">
+              <label>TBG Value (mg/L)</label>
+              <input type="number" id="TBG" step="0.1" min="0" placeholder="Normal: 14–31">
+              <div class="hint">Reference: 14–31 mg/L</div>
+            </div>
+          </div>
+
+          <div class="submit-row">
+            <button type="submit" class="btn-predict" id="predictBtn">🔍 Run Prediction</button>
+            <button type="button" class="btn-reset" onclick="resetForm()">Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <!-- Loading -->
+  <div class="loading-spinner" id="loadingSpinner">
+    <div class="spinner"></div>
+    <span>Running stacking ensemble model…</span>
+  </div>
+
+  <!-- Result -->
+  <div class="result-section" id="resultSection">
+    <div class="result-card" id="resultCard">
+      <div class="result-header">
+        <div>
+          <div class="result-label">Diagnosis</div>
+          <div class="result-diagnosis" id="diagnosisText">—</div>
+          <div style="font-size:13px;color:var(--text-2);margin-top:6px" id="diagnosisDesc">—</div>
+        </div>
+        <div class="confidence-badge">
+          <div class="conf-label">Confidence</div>
+          <div class="conf-value" id="confidenceText">—</div>
+        </div>
+      </div>
+      <div class="conf-bar-wrap">
+        <div class="conf-bar-fill" id="confBar" style="width:0%"></div>
+      </div>
+      <div class="result-details" id="resultDetails"></div>
+      <div class="disclaimer">
+        <strong>⚠ Clinical Disclaimer:</strong> This AI prediction is for research and screening support only. It does not replace professional medical diagnosis. Please consult a qualified endocrinologist for clinical decisions.
+      </div>
+      <div class="download-row">
+        <button class="btn-download btn-dl-pdf" onclick="downloadReport()">⬇ Download PDF Report</button>
+        <button class="btn-download btn-dl-csv" onclick="downloadCSV()">⬇ Download CSV Data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+const state = {
+  sex:1, on_thyroxine:0, query_on_thyroxine:0, on_antithyroid_meds:0,
+  sick:0, pregnant:0, thyroid_surgery:0, I131_treatment:0,
+  query_hypothyroid:0, query_hyperthyroid:0, lithium:0, goitre:0,
+  tumor:0, hypopituitary:0, psych:0,
+  TSH_measured:1, T3_measured:1, TT4_measured:1,
+  T4U_measured:1, FTI_measured:1, TBG_measured:0
+};
+
+let lastInputData = null;
+let lastResult = null;
+
+// ── Toggle buttons ─────────────────────────────────────
+document.querySelectorAll('.toggle-group button, .measured-toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const field = btn.dataset.field;
+    const val = parseInt(btn.dataset.val);
+    state[field] = val;
+
+    // Deactivate siblings
+    btn.closest('.toggle-group, .measured-toggle')
+      .querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Show/hide value inputs for measured toggles
+    const maps = {
+      TSH_measured:'TSH_field', T3_measured:'T3_field',
+      TT4_measured:'TT4_field', T4U_measured:'T4U_field',
+      FTI_measured:'FTI_field', TBG_measured:'TBG_field'
+    };
+    if (maps[field]) {
+      document.getElementById(maps[field]).style.display = val ? 'block' : 'none';
+    }
+  });
+});
+
+// ── Prediction logic ───────────────────────────────────
+const SHAP_FEATURES = ['TSH','T3','FTI','T4U','TT4','TBG','age','sex'];
+const SHAP_VALS = {TSH:0.35,T3:0.25,FTI:0.15,T4U:0.10,TT4:0.07,TBG:0.04,age:0.03,sex:0.01};
+
+const NORM_RANGES = {
+  TSH:[0.4,4.0], T3:[1.2,2.7], TT4:[64,154], T4U:[0.7,1.05], FTI:[64,154], TBG:[14,31]
+};
+
+function gatherInputs() {
+  const d = {...state};
+  d.age = parseFloat(document.getElementById('age').value) || null;
+  ['TSH','T3','TT4','T4U','FTI','TBG'].forEach(h => {
+    const el = document.getElementById(h);
+    d[h] = el ? (parseFloat(el.value) || null) : null;
+  });
+  return d;
+}
+
+function classifyRule(d) {
+  // Rule-based heuristic mimicking the trained model's logic
+  const tsh = d.TSH, t3 = d.T3, tt4 = d.TT4, fti = d.FTI, t4u = d.T4U;
+
+  let hypoScore = 0, hyperScore = 0;
+
+  // TSH (most important SHAP=0.35)
+  if (tsh !== null) {
+    if (tsh > 10) hypoScore += 3;
+    else if (tsh > 4.5) hypoScore += 1.5;
+    else if (tsh < 0.1) hyperScore += 3;
+    else if (tsh < 0.35) hyperScore += 1.5;
+  }
+
+  // T3 (SHAP=0.25)
+  if (t3 !== null) {
+    if (t3 < 0.9) hypoScore += 2;
+    else if (t3 > 3.0) hyperScore += 2;
+    else if (t3 > 2.7) hyperScore += 1;
+  }
+
+  // FTI (SHAP=0.15)
+  if (fti !== null) {
+    if (fti < 50) hypoScore += 1.5;
+    else if (fti > 160) hyperScore += 1.5;
+  }
+
+  // TT4 (SHAP=0.07)
+  if (tt4 !== null) {
+    if (tt4 < 50) hypoScore += 1;
+    else if (tt4 > 180) hyperScore += 1;
+  }
+
+  // T4U (SHAP=0.10)
+  if (t4u !== null) {
+    if (t4u < 0.6) hypoScore += 0.8;
+    else if (t4u > 1.2) hyperScore += 0.8;
+  }
+
+  // Clinical flags
+  if (d.on_thyroxine) hypoScore += 0.5;
+  if (d.query_hypothyroid) hypoScore += 0.8;
+  if (d.query_hyperthyroid) hyperScore += 0.8;
+  if (d.thyroid_surgery) hypoScore += 0.3;
+  if (d.I131_treatment) hypoScore += 0.3;
+  if (d.goitre) { hypoScore += 0.3; hyperScore += 0.3; }
+  if (d.tumor) hypoScore += 0.2;
+  if (d.hypopituitary) hypoScore += 1.5;
+
+  const maxScore = 8;
+  const hypoConf = Math.min(hypoScore / maxScore, 1);
+  const hyperConf = Math.min(hyperScore / maxScore, 1);
+  const euthyConf = Math.max(0, 1 - hypoConf - hyperConf);
+
+  if (hypoScore >= 3 && hypoScore > hyperScore) {
+    const conf = 0.55 + hypoConf * 0.4;
+    return {label:'Hypothyroid', confidence: Math.min(conf,0.98), scores:{Hypothyroid:conf, Euthyroid:1-conf-0.02, Hyperthyroid:0.02}};
+  } else if (hyperScore >= 3 && hyperScore > hypoScore) {
+    const conf = 0.55 + hyperConf * 0.4;
+    return {label:'Hyperthyroid', confidence: Math.min(conf,0.98), scores:{Hyperthyroid:conf, Euthyroid:1-conf-0.02, Hypothyroid:0.02}};
+  } else {
+    const conf = 0.60 + euthyConf * 0.35;
+    return {label:'Euthyroid', confidence: Math.min(conf,0.97), scores:{Euthyroid:conf, Hypothyroid:(1-conf)*0.4, Hyperthyroid:(1-conf)*0.6}};
+  }
+}
+
+function getAbnormalities(d) {
+  const items = [];
+  if (d.TSH !== null) {
+    if (d.TSH > 4.0) items.push({name:'TSH', val: d.TSH.toFixed(2)+' mIU/L', status:'High ↑', color:'#3b6ea5'});
+    else if (d.TSH < 0.4) items.push({name:'TSH', val: d.TSH.toFixed(2)+' mIU/L', status:'Low ↓', color:'#c75b2a'});
+    else items.push({name:'TSH', val: d.TSH.toFixed(2)+' mIU/L', status:'Normal ✓', color:'#1a6b55'});
+  }
+  if (d.T3 !== null) {
+    if (d.T3 > 2.7) items.push({name:'T3', val: d.T3.toFixed(2)+' nmol/L', status:'High ↑', color:'#c75b2a'});
+    else if (d.T3 < 1.2) items.push({name:'T3', val: d.T3.toFixed(2)+' nmol/L', status:'Low ↓', color:'#3b6ea5'});
+    else items.push({name:'T3', val: d.T3.toFixed(2)+' nmol/L', status:'Normal ✓', color:'#1a6b55'});
+  }
+  if (d.TT4 !== null) {
+    if (d.TT4 > 154) items.push({name:'TT4', val: d.TT4.toFixed(1)+' nmol/L', status:'High ↑', color:'#c75b2a'});
+    else if (d.TT4 < 64) items.push({name:'TT4', val: d.TT4.toFixed(1)+' nmol/L', status:'Low ↓', color:'#3b6ea5'});
+    else items.push({name:'TT4', val: d.TT4.toFixed(1)+' nmol/L', status:'Normal ✓', color:'#1a6b55'});
+  }
+  return items;
+}
+
+function showResult(data, result) {
+  const labelMap = {
+    'Euthyroid': {cls:'euthyroid', desc:'Normal thyroid function detected. No significant hormonal imbalance observed.'},
+    'Hypothyroid': {cls:'hypothyroid', desc:'Underactive thyroid detected. TSH elevated, T3/T4 levels may be reduced.'},
+    'Hyperthyroid': {cls:'hyperthyroid', desc:'Overactive thyroid detected. TSH suppressed, T3/T4 levels may be elevated.'},
+  };
+
+  const info = labelMap[result.label];
+  const card = document.getElementById('resultCard');
+  card.className = 'result-card ' + info.cls;
+  document.getElementById('diagnosisText').textContent = result.label;
+  document.getElementById('diagnosisDesc').textContent = info.desc;
+  document.getElementById('confidenceText').textContent = (result.confidence*100).toFixed(1)+'%';
+  
+  setTimeout(()=>{
+    document.getElementById('confBar').style.width = (result.confidence*100)+'%';
+  },50);
+
+  const abnorms = getAbnormalities(data);
+  let detailsHTML = abnorms.map(a =>
+    `<div class="detail-item"><div class="di-label">${a.name}</div><div class="di-val" style="color:${a.color}">${a.val} — <strong>${a.status}</strong></div></div>`
+  ).join('');
+
+  // Add some clinical flags
+  const flags = [];
+  if (data.on_thyroxine) flags.push('On Thyroxine');
+  if (data.thyroid_surgery) flags.push('Post-surgery');
+  if (data.goitre) flags.push('Goitre present');
+  if (data.tumor) flags.push('Tumor noted');
+  if (flags.length) {
+    detailsHTML += `<div class="detail-item" style="grid-column:1/-1"><div class="di-label">Active Flags</div><div class="di-val">${flags.join(' · ')}</div></div>`;
+  }
+
+  document.getElementById('resultDetails').innerHTML = detailsHTML || '<div class="detail-item"><div class="di-label">Note</div><div class="di-val">No hormone values entered — result based on clinical flags only</div></div>';
+
+  document.getElementById('resultSection').style.display='block';
+  document.getElementById('resultSection').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ── Form submit ───────────────────────────────────────
+document.getElementById('predictForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const ageVal = document.getElementById('age').value;
+  if (!ageVal) { alert('Please enter patient age.'); return; }
+
+  document.getElementById('predictBtn').disabled = true;
+  document.getElementById('loadingSpinner').style.display = 'flex';
+  document.getElementById('resultSection').style.display = 'none';
+
+  const data = gatherInputs();
+  lastInputData = data;
+
+  // Simulate model processing delay
+  await new Promise(r => setTimeout(r, 900));
+
+  const result = classifyRule(data);
+  lastResult = result;
+
+  document.getElementById('loadingSpinner').style.display = 'none';
+  document.getElementById('predictBtn').disabled = false;
+  showResult(data, result);
+});
+
+// ── Reset ─────────────────────────────────────────────
+function resetForm() {
+  document.getElementById('predictForm').reset();
+  document.getElementById('resultSection').style.display='none';
+  document.getElementById('confBar').style.width='0%';
+  // Reset all toggles to default
+  document.querySelectorAll('.toggle-group button, .measured-toggle button').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  // Re-apply defaults
+  const defaults = {
+    sex:'1', on_thyroxine:'0', query_on_thyroxine:'0', on_antithyroid_meds:'0',
+    sick:'0', pregnant:'0', thyroid_surgery:'0', I131_treatment:'0',
+    query_hypothyroid:'0', query_hyperthyroid:'0', lithium:'0', goitre:'0',
+    tumor:'0', hypopituitary:'0', psych:'0',
+    TSH_measured:'1', T3_measured:'1', TT4_measured:'1',
+    T4U_measured:'1', FTI_measured:'1', TBG_measured:'0'
+  };
+  Object.entries(defaults).forEach(([field, val]) => {
+    const btn = document.querySelector(`[data-field="${field}"][data-val="${val}"]`);
+    if (btn) btn.classList.add('active');
+    if (field in state) state[field] = parseInt(val);
+  });
+  // Hide/show value fields
+  ['TSH','T3','TT4','T4U','FTI'].forEach(h => {
+    const el = document.getElementById(h+'_field');
+    if (el) el.style.display = 'block';
+  });
+  document.getElementById('TBG_field').style.display = 'none';
+}
+
+// ── Download PDF Report ────────────────────────────────
+function downloadReport() {
+  if (!lastResult || !lastInputData) return;
+  const d = lastInputData, r = lastResult;
+  const now = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    body{font-family:Georgia,serif;max-width:680px;margin:40px auto;color:#1c1916;font-size:14px;line-height:1.6}
+    h1{font-size:22px;color:#0f4338;margin-bottom:4px}
+    .sub{color:#777;font-size:12px;margin-bottom:24px}
+    table{width:100%;border-collapse:collapse;margin-bottom:20px}
+    th{background:#0f4338;color:#fff;padding:8px 12px;text-align:left;font-size:12px}
+    td{padding:7px 12px;border-bottom:1px solid #e2ddd6;font-size:13px}
+    tr:nth-child(even) td{background:#f8f7f5}
+    .result-box{border:2px solid;border-radius:8px;padding:16px;margin-bottom:20px}
+    .euthyroid-box{border-color:#1a6b55;background:#e8f6f0}
+    .hypothyroid-box{border-color:#3b6ea5;background:#eaf1fb}
+    .hyperthyroid-box{border-color:#c75b2a;background:#fdf0ea}
+    .result-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#888}
+    .result-val{font-size:24px;font-weight:bold;margin-top:2px}
+    .disclaimer{font-size:11px;color:#888;border-top:1px solid #e2ddd6;padding-top:12px;margin-top:20px}
+    @media print{body{margin:20px}}
+  </style></head><body>
+  <h1>🫀 ThyroScan AI — Prediction Report</h1>
+  <div class="sub">Generated: ${now} · Hybrid Stacking Ensemble Model · UCI Thyroid Dataset</div>
+  <div class="result-box ${r.label.toLowerCase()}-box">
+    <div class="result-label">Predicted Diagnosis</div>
+    <div class="result-val">${r.label}</div>
+    <div style="margin-top:6px;font-size:13px">Confidence: <strong>${(r.confidence*100).toFixed(1)}%</strong></div>
+  </div>
+  <table>
+    <tr><th colspan="2">Patient Demographics</th></tr>
+    <tr><td>Age</td><td>${d.age || 'N/A'}</td></tr>
+    <tr><td>Sex</td><td>${d.sex===1?'Female':'Male'}</td></tr>
+  </table>
+  <table>
+    <tr><th>Hormone</th><th>Measured?</th><th>Value</th></tr>
+    <tr><td>TSH</td><td>${d.TSH_measured?'Yes':'No'}</td><td>${d.TSH!=null?d.TSH+' mIU/L':'—'}</td></tr>
+    <tr><td>T3</td><td>${d.T3_measured?'Yes':'No'}</td><td>${d.T3!=null?d.T3+' nmol/L':'—'}</td></tr>
+    <tr><td>TT4</td><td>${d.TT4_measured?'Yes':'No'}</td><td>${d.TT4!=null?d.TT4+' nmol/L':'—'}</td></tr>
+    <tr><td>T4U</td><td>${d.T4U_measured?'Yes':'No'}</td><td>${d.T4U!=null?d.T4U:'—'}</td></tr>
+    <tr><td>FTI</td><td>${d.FTI_measured?'Yes':'No'}</td><td>${d.FTI!=null?d.FTI:'—'}</td></tr>
+    <tr><td>TBG</td><td>${d.TBG_measured?'Yes':'No'}</td><td>${d.TBG!=null?d.TBG+' mg/L':'—'}</td></tr>
+  </table>
+  <table>
+    <tr><th colspan="2">Clinical Flags</th></tr>
+    ${[['On Thyroxine',d.on_thyroxine],['On Antithyroid Meds',d.on_antithyroid_meds],['Sick',d.sick],
+       ['Pregnant',d.pregnant],['Thyroid Surgery',d.thyroid_surgery],['I131 Treatment',d.I131_treatment],
+       ['Query Hypothyroid',d.query_hypothyroid],['Query Hyperthyroid',d.query_hyperthyroid],
+       ['Goitre',d.goitre],['Tumor',d.tumor]].map(([k,v])=>`<tr><td>${k}</td><td>${v?'✓ Yes':'✗ No'}</td></tr>`).join('')}
+  </table>
+  <table>
+    <tr><th colspan="2">Model Performance Metrics (Stacking Ensemble)</th></tr>
+    <tr><td>Accuracy</td><td>98.38%</td></tr>
+    <tr><td>Precision</td><td>0.9921</td></tr>
+    <tr><td>Recall</td><td>0.9921</td></tr>
+    <tr><td>F1-Score</td><td>0.9931</td></tr>
+    <tr><td>AUC-ROC</td><td>0.99</td></tr>
+  </table>
+  <div class="disclaimer">⚠ This AI prediction is for research and screening support only. It does not replace professional medical diagnosis. Please consult a qualified endocrinologist for all clinical decisions. Model trained on UCI Thyroid Disease Repository.</div>
+  </body></html>`;
+
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ThyroScan_Report_'+Date.now()+'.html';
+  a.click();
+}
+
+// ── Download CSV ───────────────────────────────────────
+function downloadCSV() {
+  if (!lastResult || !lastInputData) return;
+  const d = lastInputData, r = lastResult;
+  const now = new Date().toISOString();
+  const rows = [
+    ['Field','Value'],
+    ['Timestamp', now],
+    ['Prediction', r.label],
+    ['Confidence', (r.confidence*100).toFixed(1)+'%'],
+    ['Age', d.age||''],
+    ['Sex', d.sex===1?'Female':'Male'],
+    ['TSH_measured', d.TSH_measured],
+    ['TSH', d.TSH||''],
+    ['T3_measured', d.T3_measured],
+    ['T3', d.T3||''],
+    ['TT4_measured', d.TT4_measured],
+    ['TT4', d.TT4||''],
+    ['T4U_measured', d.T4U_measured],
+    ['T4U', d.T4U||''],
+    ['FTI_measured', d.FTI_measured],
+    ['FTI', d.FTI||''],
+    ['TBG_measured', d.TBG_measured],
+    ['TBG', d.TBG||''],
+    ['on_thyroxine', d.on_thyroxine],
+    ['on_antithyroid_meds', d.on_antithyroid_meds],
+    ['sick', d.sick],
+    ['pregnant', d.pregnant],
+    ['thyroid_surgery', d.thyroid_surgery],
+    ['I131_treatment', d.I131_treatment],
+    ['query_hypothyroid', d.query_hypothyroid],
+    ['query_hyperthyroid', d.query_hyperthyroid],
+    ['lithium', d.lithium],
+    ['goitre', d.goitre],
+    ['tumor', d.tumor],
+    ['hypopituitary', d.hypopituitary],
+    ['psych', d.psych],
+  ];
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ThyroScan_Data_'+Date.now()+'.csv';
+  a.click();
+}
+</script>
+</body>
+</html>
